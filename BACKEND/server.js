@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
 import connectDb from "./lib/db.js"
 import cookieParser from 'cookie-parser';
+import productRoutes from './routes/product.route.js';
 
 const app = express();
 
@@ -14,6 +15,8 @@ const PORT =   3000;
 connectDb();  // Call to connect to MongoDB
 
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+
 
 app.listen(PORT, () => {
     console.log("server is running on this " + PORT);
