@@ -14,7 +14,8 @@ import analyticsRoutes from "./routes/analytics.route.js";
 const app = express();
 
 dotenv.config();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // allows you to parse the body of the request
+
 app.use(cookieParser());
 
 const PORT =   3000;
