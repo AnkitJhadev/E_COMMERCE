@@ -76,9 +76,27 @@ export const createCheckoutSession = async (req, res) => {
 export const checkoutSuccess = async (req, res) => {
 	try {
 		const { sessionId } = req.body;
+
+		// Validate sessionId
+		if (!sessionId) {
+			return res.status(400).json({ message: "Session ID is required" });
+		}
+
+		// Retrieve the Stripe session
 		const session = await stripe.checkout.sessions.retrieve(sessionId);
 
+		// Check if the payment was successful
 		if (session.payment_status === "paid") {
+			// Check if the order already exists in the database
+			const existingOrder = await Order.findOne({ stripeSessionId: sessionId });
+			if (existingOrder) {
+				return res.status(400).json({
+					message: "Order has already been processed for this session.",
+					orderId: existingOrder._id,
+				});
+			}
+
+			// Deactivate the coupon if one was used
 			if (session.metadata.couponCode) {
 				await Coupon.findOneAndUpdate(
 					{
@@ -91,7 +109,7 @@ export const checkoutSuccess = async (req, res) => {
 				);
 			}
 
-			// create a new Order
+			// Create a new Order
 			const products = JSON.parse(session.metadata.products);
 			const newOrder = new Order({
 				user: session.metadata.userId,
@@ -100,23 +118,29 @@ export const checkoutSuccess = async (req, res) => {
 					quantity: product.quantity,
 					price: product.price,
 				})),
-				totalAmount: session.amount_total / 100, // convert from cents to dollars,
+				totalAmount: session.amount_total / 100, // Convert from cents to dollars
 				stripeSessionId: sessionId,
 			});
 
+			// Save the new order
 			await newOrder.save();
 
+			// Respond with success
 			res.status(200).json({
 				success: true,
 				message: "Payment successful, order created, and coupon deactivated if used.",
 				orderId: newOrder._id,
 			});
+		} else {
+			// If the payment was not successful
+			res.status(400).json({ message: "Payment not completed" });
 		}
 	} catch (error) {
 		console.error("Error processing successful checkout:", error);
 		res.status(500).json({ message: "Error processing successful checkout", error: error.message });
 	}
 };
+
 
 async function createStripeCoupon(discountPercentage) {
 	const coupon = await stripe.coupons.create({

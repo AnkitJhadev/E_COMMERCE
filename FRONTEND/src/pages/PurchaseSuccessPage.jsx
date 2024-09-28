@@ -13,17 +13,16 @@ const PurchaseSuccessPage = () => {
 	useEffect(() => {
 		const handleCheckoutSuccess = async (sessionId) => {
 			try {
-				await axios.post("/payments/checkout-success", {
-					sessionId,
-				});
-				clearCart();
+				await axios.post("/payments/checkout-success", { sessionId });
+				clearCart();  // Clear the cart upon successful checkout
+				console.log("Cart cleared successfully");
 			} catch (error) {
-				console.log(error);
+				console.log("Error clearing cart after checkout:", error);
 			} finally {
 				setIsProcessing(false);
 			}
 		};
-
+	 
 		const sessionId = new URLSearchParams(window.location.search).get("session_id");
 		if (sessionId) {
 			handleCheckoutSuccess(sessionId);
@@ -31,8 +30,8 @@ const PurchaseSuccessPage = () => {
 			setIsProcessing(false);
 			setError("No session ID found in the URL");
 		}
-	}, [clearCart]);
-
+	 }, [clearCart]);
+	 
 	if (isProcessing) return "Processing...";
 
 	if (error) return `Error: ${error}`;
